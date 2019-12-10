@@ -10,10 +10,7 @@ import com.niek125.rolemanager.models.Permission;
 import com.niek125.rolemanager.models.User;
 import com.niek125.rolemanager.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
@@ -36,7 +33,7 @@ public class UserController {
         this.objectMapper = new ObjectMapper();
     }
 
-    @RequestMapping("/getusers/{projectid}")
+    @RequestMapping(value = "/getusers/{projectid}", method = RequestMethod.GET)
     public List<User> getusers(@RequestHeader("Authorization") String token, @PathVariable("projectid") String projectid){
         try {
             Algorithm algorithm = Algorithm.RSA512((RSAPublicKey) readPublicKeyFromFile("src/main/resources/PublicKey.pem", "RSA"), null);
@@ -52,5 +49,10 @@ public class UserController {
             exception.printStackTrace();
         }
         return null;
+    }
+
+    @RequestMapping(value = "/save", method = RequestMethod.POST)
+    public void saveUser(@RequestBody() User user){
+        userRepo.save(user);
     }
 }
