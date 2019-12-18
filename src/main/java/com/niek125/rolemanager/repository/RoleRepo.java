@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface RoleRepo extends JpaRepository<Role, Long> {
+public interface RoleRepo extends JpaRepository<Role, String> {
     @Query("select r from role r where r.userid = :userid")
     List<Role> findRolesByUserid(@Param("userid") String userid);
 }

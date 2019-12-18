@@ -1,6 +1,6 @@
 package com.niek125.rolemanager.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 import javax.persistence.Entity;
@@ -8,6 +8,7 @@ import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -16,9 +17,7 @@ import javax.persistence.Id;
 @Entity(name = "role")
 public class Role {
     @Id
-    @JsonIgnore
-    private int roleid;
-    @JsonIgnore
+    private String roleid;
     private String userid;
     private String projectid;
     @Enumerated(EnumType.STRING)
