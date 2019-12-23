@@ -17,8 +17,4 @@ public class User {
     private String profilepicture;
     private String username;
     private String email;
-
-    public String toJSON(){
-        return "{\"value\":\"" + userid + "\",\"text\":\"" + email + "\"}";
-    }
 }

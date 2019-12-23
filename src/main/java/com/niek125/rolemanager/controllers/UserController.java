@@ -1,7 +1,5 @@
 package com.niek125.rolemanager.controllers;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
@@ -16,37 +14,30 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.Tuple;
 import java.io.IOException;
-import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.List;
-
-import static com.niek125.rolemanager.controllers.PemUtils.readPublicKeyFromFile;
 
 @RestController
 @RequestMapping("/user")
 public class UserController {
-    @Autowired
-    private UserRepo userRepo;
-    private ObjectMapper objectMapper;
+    private final UserRepo userRepo;
+    private final ObjectMapper objectMapper;
+    private final JWTVerifier jwtVerifier;
 
-    public UserController() {
-        java.security.Security.addProvider(
-                new org.bouncycastle.jce.provider.BouncyCastleProvider()
-        );
-        this.objectMapper = new ObjectMapper();
+    @Autowired
+    public UserController(UserRepo userRepo, ObjectMapper objectMapper, JWTVerifier jwtVerifier) {
+        this.userRepo = userRepo;
+        this.objectMapper = objectMapper;
+        this.jwtVerifier = jwtVerifier;
     }
 
     @RequestMapping(value = "/getusers/{projectid}", method = RequestMethod.GET)
     public String getUsers(@RequestHeader("Authorization") String token, @PathVariable("projectid") String projectid) {
         try {
-            Algorithm algorithm = Algorithm.RSA512((RSAPublicKey) readPublicKeyFromFile("src/main/resources/PublicKey.pem", "RSA"), null);
-            JWTVerifier verifier = JWT.require(algorithm)
-                    .withIssuer("data-editor-token-service")
-                    .build();
-            DecodedJWT jwt = verifier.verify(token.replace("Bearer ", ""));
-            Permission[] perms = objectMapper.readValue(((jwt.getClaims()).get("pms")).asString(), Permission[].class);
+            final DecodedJWT jwt = jwtVerifier.verify(token.replace("Bearer ", ""));
+            final Permission[] perms = objectMapper.readValue(((jwt.getClaims()).get("pms")).asString(), Permission[].class);
             if (Arrays.stream(perms).filter(p -> p.getProjectid().equals(projectid)).findFirst().isPresent()) {
-                List<Tuple> users = userRepo.findUsersByProject(projectid);
+                final List<Tuple> users = userRepo.findUsersByProject(projectid);
                 String json = "[";
                 for (int i = 0; i < users.size(); i++) {
                     if (i > 0) {
@@ -71,15 +62,7 @@ public class UserController {
     }
 
     @RequestMapping("/users/{email}")
-    public String autocompleteUsers(@PathVariable("email") String email) {
-        List<User> users = userRepo.findFiveByEmail(email + "%", PageRequest.of(0, 5));
-        String json = "[";
-        for (int i = 0; i < users.size(); i++) {
-            if (i > 0) {
-                json += ",";
-            }
-            json += users.get(i).toJSON();
-        }
-        return json + "]";
+    public List<User> autocompleteUsers(@PathVariable("email") String email) {
+        return userRepo.findFiveByEmail(email + "%", PageRequest.of(0, 5));
     }
 }

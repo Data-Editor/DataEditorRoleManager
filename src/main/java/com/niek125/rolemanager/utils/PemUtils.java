@@ -1,4 +1,4 @@
-package com.niek125.rolemanager.controllers;
+package com.niek125.rolemanager.utils;
 
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
