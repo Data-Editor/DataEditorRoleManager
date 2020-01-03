@@ -4,10 +4,8 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
@@ -17,12 +15,6 @@ import static com.niek125.rolemanagerservice.utils.PemUtils.readPublicKeyFromFil
 
 @Configuration
 public class Config {
-    @Bean
-    @LoadBalanced
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
-
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
