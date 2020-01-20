@@ -4,8 +4,8 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.niek125.rolemanagerservice.constructor.JsonConstructor;
 import com.niek125.rolemanagerservice.models.Permission;
-import com.niek125.rolemanagerservice.models.Role;
 import com.niek125.rolemanagerservice.models.User;
 import com.niek125.rolemanagerservice.repository.UserRepo;
 import org.slf4j.Logger;
@@ -19,51 +19,54 @@ import java.util.Arrays;
 import java.util.List;
 
 @RestController
+@CrossOrigin
 @RequestMapping("/user")
 public class UserController {
     private final Logger logger = LoggerFactory.getLogger(UserController.class);
     private final UserRepo userRepo;
     private final ObjectMapper objectMapper;
     private final JWTVerifier jwtVerifier;
+    private final JsonConstructor jsonConstructor;
 
     @Autowired
-    public UserController(UserRepo userRepo, ObjectMapper objectMapper, JWTVerifier jwtVerifier) {
+    public UserController(UserRepo userRepo, ObjectMapper objectMapper, JWTVerifier jwtVerifier, JsonConstructor jsonConstructor) {
         this.userRepo = userRepo;
         this.objectMapper = objectMapper;
         this.jwtVerifier = jwtVerifier;
+        this.jsonConstructor = jsonConstructor;
     }
 
-    @RequestMapping(value = "/getusers/{projectid}", method = RequestMethod.GET)
-    public String getUsers(@RequestHeader("Authorization") String token, @PathVariable("projectid") String projectid) throws JsonProcessingException {
+    private DecodedJWT verifyToken(String token){
+        return jwtVerifier.verify(token.replace("Bearer ", ""));
+    }
+
+    private boolean hasPermission(String token, String projectid) throws JsonProcessingException {
         logger.info("verifying token");
-        final DecodedJWT jwt = jwtVerifier.verify(token.replace("Bearer ", ""));
+        final DecodedJWT jwt = verifyToken(token);
         final Permission[] perms = objectMapper.readValue(((jwt.getClaims()).get("pms")).asString(), Permission[].class);
-        if (!Arrays.stream(perms).filter(p -> p.getProjectid().equals(projectid)).findFirst().isPresent()) {
+        return Arrays.stream(perms).anyMatch(p -> p.getProjectid().equals(projectid));
+    }
+
+    @GetMapping(value = "/getusers/{projectid}")
+    public String getUsers(@RequestHeader("Authorization") String token, @PathVariable("projectid") String projectid) throws JsonProcessingException {
+        if (!hasPermission(token, projectid)) {
             logger.info("no permission");
             return "[]";
         }
         logger.info("getting users");
         final List<Tuple> users = userRepo.findUsersByProject(projectid);
         logger.info("constructing json");
-        String json = "[";
-        for (int i = 0; i < users.size(); i++) {
-            if (i > 0) {
-                json += ",";
-            }
-            User user = (User) users.get(i).get("user");
-            Role role = (Role) users.get(i).get("role");
-            json += "{\"user\":" + objectMapper.writeValueAsString(user) +
-                    ",\"role\":" + objectMapper.writeValueAsString(role) + "}";
-        }
+        final String json = jsonConstructor.constructJson(users);
         logger.info("returning json");
-        return json + "]";
+        return json;
     }
 
-    @RequestMapping("/users/{email}")
-    public List<User> autocompleteUsers(@PathVariable("email") String email) {
-        logger.info("getting users like: " + email);
+    @GetMapping("/users/{email}")
+    public List<User> autocompleteUsers(@PathVariable("email") String email, @RequestHeader("Authorization") String token) {
+        verifyToken(token);
+        logger.info("getting users like: {}", email);
         List<User> users = userRepo.findFiveByEmail(email + "%", PageRequest.of(0, 5));
-        logger.info("returning: " + users.size() + " users");
+        logger.info("returning: {} users", users.size());
         return users;
     }
 }

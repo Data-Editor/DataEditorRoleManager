@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,9 +21,15 @@ public class Config {
         return new ObjectMapper();
     }
 
+    @Value("${com.niek125.publickey}")
+    private String publickey;
+
+    @Value("${com.niek125.allowed-token-signer}")
+    private String tokenSigner;
+
     @Bean
     public JWTVerifier jwtVerifier() throws IOException {
-        Algorithm algorithm = Algorithm.RSA512((RSAPublicKey) readPublicKeyFromFile("rolemanagerservice/src/main/resources/PublicKey.pem", "RSA"), null);
-        return JWT.require(algorithm).withIssuer("data-editor-token-service").build();
+        final Algorithm algorithm = Algorithm.RSA512((RSAPublicKey) readPublicKeyFromFile(publickey, "RSA"), null);
+        return JWT.require(algorithm).withIssuer(tokenSigner).build();
     }
 }
